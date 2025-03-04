@@ -12,19 +12,26 @@ public class DungeonGenerator : MonoBehaviour
     public bool depthTest = false;
     public float height = 0.0f;
     public int rooms = 5;
+    public bool splitHorizontally;
 
     public AlgorithmsUtils algorithmsUtils;
 
     private void Update()
     {
-        foreach (var room in roomList)  
-        {
-            AlgorithmsUtils.DebugRectInt(room, Color.green, duration, depthTest, height);
-        }
-        
+            foreach (var room in roomList)
+            {
+                AlgorithmsUtils.DebugRectInt(room, Color.green, duration, depthTest, height);
+            }
+
     }
     private void Start()
     {
+
+        if (Random.value > 0.5f)
+        {
+            splitHorizontally = true;
+        }
+
         roomList.Add(initalroom); // Ensure at least one initial room exists
 
         for (int i = 0; i < rooms; i++)
@@ -34,6 +41,8 @@ public class DungeonGenerator : MonoBehaviour
                 CreateRoom();
             }
         }
+
+        
     }
 
     void CreateRoom()
@@ -42,16 +51,31 @@ public class DungeonGenerator : MonoBehaviour
         RectInt currentRoom = roomList[roomIndex];
 
         int halfWidth = currentRoom.width / 2;
+        int halfLength = currentRoom.height / 2; 
 
         RectInt firstHalf, secondHalf;
 
         int lineX = currentRoom.xMin + halfWidth;
-        firstHalf = new RectInt(currentRoom.xMin, currentRoom.yMin, halfWidth + 1, currentRoom.height);
-        secondHalf = new RectInt(lineX - 1, currentRoom.yMin, currentRoom.width - halfWidth + 1, currentRoom.height);
+        int lineY = currentRoom.yMin + halfLength;
+        if (splitHorizontally == true)
+        {
+            firstHalf = new RectInt(currentRoom.xMin, currentRoom.yMin, currentRoom.width, halfLength + 1);
+            secondHalf = new RectInt(currentRoom.xMin, lineY - 1, currentRoom.width, currentRoom.height - halfLength + 1);
 
-        roomList.RemoveAt(roomIndex);
-        roomList.Add(firstHalf);
-        roomList.Add(secondHalf);
+            roomList.RemoveAt(roomIndex);
+            roomList.Add(firstHalf);
+            roomList.Add(secondHalf);
+        }
+        else
+        {
+            firstHalf = new RectInt(currentRoom.xMin, currentRoom.yMin, halfWidth + 1, currentRoom.height);
+            secondHalf = new RectInt(lineX - 1, currentRoom.yMin, currentRoom.width - halfWidth + 1, currentRoom.height);
+
+            roomList.RemoveAt(roomIndex);
+            roomList.Add(firstHalf);
+            roomList.Add(secondHalf);
+        }
+        
 
     }
 }

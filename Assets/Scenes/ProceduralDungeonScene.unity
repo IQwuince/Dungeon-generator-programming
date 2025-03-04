@@ -470,9 +470,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 81139d9c98bd3ae44ab21004f94198f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  roomList: []
   duration: 0
   depthTest: 0
   height: 0
+  rooms: 3
+  splitHorizontally: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
