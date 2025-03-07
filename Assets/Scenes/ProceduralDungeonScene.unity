@@ -474,8 +474,11 @@ MonoBehaviour:
   duration: 0
   depthTest: 0
   height: 0
-  rooms: 3
+  rooms: 10000
   splitHorizontally: 0
+  makeRoom: 0
+  minSizeX: 10
+  minSizeY: 10
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
