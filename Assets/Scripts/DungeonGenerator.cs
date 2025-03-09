@@ -48,32 +48,19 @@ public class DungeonGenerator : MonoBehaviour
                 CreateRoom();
             }
         }
-
-        //StartCoroutine(CreatingRooms());
     }
-    /*private IEnumerator CreatingRooms()
-    {
-        while (makeRoom == true)
-        {
-            foreach (var room in roomList)
-            {
-                AlgorithmsUtils.DebugRectInt(room, Color.green, duration, depthTest, height);
-            }
-            yield return new();
-            if (Input.GetKeyDown(KeyCode.P))
-            {
-                StartCoroutine(CreatingRooms());
-            }
-            
-        }
-    }*/
     void CreateRoom()
     {
         int roomIndex = Random.Range(0, roomList.Count);
         RectInt currentRoom = roomList[roomIndex];
 
-        int halfWidth = currentRoom.width / 2;
-        int halfLength = currentRoom.height / 2;
+       // int halfWidth = currentRoom.width / 2;
+        //int halfLength = currentRoom.height / 2;
+
+        int halfWidth = (int)Random.Range(minSizeX, currentRoom.width - minSizeX);
+        int halfLength = (int)Random.Range(minSizeY, currentRoom.height - minSizeY);
+
+        int surfaceArea = halfLength * halfWidth;
 
         float surfaceRoom = currentRoom.width * currentRoom.height;
 
@@ -82,7 +69,7 @@ public class DungeonGenerator : MonoBehaviour
         int lineX = currentRoom.xMin + halfWidth;
         int lineY = currentRoom.yMin + halfLength;
 
-        if (splitHorizontally == true && currentRoom.width > minSizeX && currentRoom.height > minSizeY)
+        if (splitHorizontally == true && currentRoom.width > minSizeX && halfLength > minSizeY)
         {
             firstHalf = new RectInt(currentRoom.xMin, currentRoom.yMin, currentRoom.width, halfLength + 1);
             secondHalf = new RectInt(currentRoom.xMin, lineY - 1, currentRoom.width, currentRoom.height - halfLength + 1);
@@ -93,7 +80,7 @@ public class DungeonGenerator : MonoBehaviour
             
             splitHorizontally = false;
         }
-        else if (currentRoom.height > minSizeY && currentRoom.width > minSizeX)
+        else if (currentRoom.height > minSizeY && halfWidth > minSizeX)
         {
             firstHalf = new RectInt(currentRoom.xMin, currentRoom.yMin, halfWidth + 1, currentRoom.height);
             secondHalf = new RectInt(lineX - 1, currentRoom.yMin, currentRoom.width - halfWidth + 1, currentRoom.height);
@@ -104,7 +91,6 @@ public class DungeonGenerator : MonoBehaviour
 
             splitHorizontally = true;
         }
-        
 
     }
 }
