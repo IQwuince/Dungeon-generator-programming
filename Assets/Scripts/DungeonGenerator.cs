@@ -2,6 +2,7 @@ using UnityEngine;
 using Unity.VisualScripting;
 using System.Collections.Generic;
 using System.Collections;
+using NaughtyAttributes;
 
 public class DungeonGenerator : MonoBehaviour
 {
@@ -15,7 +16,6 @@ public class DungeonGenerator : MonoBehaviour
     public int rooms = 5;
     public bool splitHorizontally;
     public bool makeRoom;
-    private IEnumerator coroutine;
 
     [Header("room size")]
     public float minSizeX = 20;
@@ -48,6 +48,8 @@ public class DungeonGenerator : MonoBehaviour
                 CreateRoom();
             }
         }
+        FindAdjacentRooms();
+        PrintRoomPositions();
     }
     void CreateRoom()
     {
@@ -93,4 +95,33 @@ public class DungeonGenerator : MonoBehaviour
         }
 
     }
+    void FindAdjacentRooms()
+    {
+        for (int i = 0; i < roomList.Count; i++)
+        {
+            RectInt roomA = roomList[i];
+
+            for (int j = i + 1; j < roomList.Count; j++)
+            {   
+                RectInt roomB = roomList[j];
+
+                bool isAdjacent = AlgorithmsUtils.Intersects(roomA, roomB);
+
+                if (isAdjacent)
+                {
+                    Debug.Log($" Room {i} is adjacent to Room {j}");
+                }
+            }
+        }
+    }
+
+    void PrintRoomPositions()
+    {
+        for (int i = 0; i < roomList.Count; i++)
+        {
+            RectInt room = roomList[i];
+            Debug.Log($"Room {i}: X[{room.xMin}, {room.xMax}] Y[{room.yMin}, {room.yMax}]");
+        }
+    }
+
 }
