@@ -471,14 +471,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   roomList: []
+  wallList: []
+  doorList: []
   duration: 0
   depthTest: 0
   height: 0
+  heightDoor: 0
   rooms: 10000
   splitHorizontally: 0
   makeRoom: 0
-  minSizeX: 10
-  minSizeY: 10
+  minSizeX: 11
+  minSizeY: 11
 --- !u!1 &1953143799
 GameObject:
   m_ObjectHideFlags: 0

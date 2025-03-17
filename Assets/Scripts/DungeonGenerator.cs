@@ -6,13 +6,16 @@ using NaughtyAttributes;
 
 public class DungeonGenerator : MonoBehaviour
 {
-    public List<RectInt> roomList = new List<RectInt>();
+    public List<RectInt> roomList = new();
+    public List<RectInt> wallList = new();
+    public List<RectInt> doorList = new();
 
     RectInt initalroom = new RectInt(0, 0, 100, 50);
 
     public float duration= 0;
     public bool depthTest = false;
     public float height = 0.0f;
+    public float heightDoor = 5f;
     public int rooms = 5;
     public bool splitHorizontally;
     public bool makeRoom;
@@ -30,6 +33,12 @@ public class DungeonGenerator : MonoBehaviour
         {
             AlgorithmsUtils.DebugRectInt(room, Color.green, duration, depthTest, height);
         }
+
+        foreach (var door in doorList)
+        {
+            AlgorithmsUtils.DebugRectInt(door, Color.red, duration, depthTest, height);
+        }
+
     }
     private void Start()
     {
@@ -39,11 +48,11 @@ public class DungeonGenerator : MonoBehaviour
             splitHorizontally = true;
         }
 
-        roomList.Add(initalroom); // Ensure at least one initial room exists
+        roomList.Add(initalroom);
 
         for (int i = 0; i < rooms; i++)
         {
-            if (roomList.Count > 0) // Ensure there are rooms to split
+            if (roomList.Count > 0) 
             {
                 CreateRoom();
             }
@@ -61,10 +70,6 @@ public class DungeonGenerator : MonoBehaviour
 
         int halfWidth = (int)Random.Range(minSizeX, currentRoom.width - minSizeX);
         int halfLength = (int)Random.Range(minSizeY, currentRoom.height - minSizeY);
-
-        int surfaceArea = halfLength * halfWidth;
-
-        float surfaceRoom = currentRoom.width * currentRoom.height;
 
         RectInt firstHalf, secondHalf;
 
@@ -102,14 +107,16 @@ public class DungeonGenerator : MonoBehaviour
             RectInt roomA = roomList[i];
 
             for (int j = i + 1; j < roomList.Count; j++)
-            {   
+            {
                 RectInt roomB = roomList[j];
 
-                bool isAdjacent = AlgorithmsUtils.Intersects(roomA, roomB);
+                RectInt sharedWall = AlgorithmsUtils.Intersect(roomA, roomB);
 
-                if (isAdjacent)
+                if (sharedWall.width > 0 && sharedWall.height > 0) // Valid overlap
                 {
-                    Debug.Log($" Room {i} is adjacent to Room {j}");
+                    Debug.Log($"Shared Wall between Room {i} and Room {j}: X[{sharedWall.xMin}, {sharedWall.xMax}] Y[{sharedWall.yMin}, {sharedWall.yMax}]");
+                    wallList.Add(sharedWall);
+                    AlgorithmsUtils.DebugRectInt(sharedWall, Color.red, 100f, depthTest, heightDoor); // Draw the shared wall in red
                 }
             }
         }
@@ -120,8 +127,13 @@ public class DungeonGenerator : MonoBehaviour
         for (int i = 0; i < roomList.Count; i++)
         {
             RectInt room = roomList[i];
-            Debug.Log($"Room {i}: X[{room.xMin}, {room.xMax}] Y[{room.yMin}, {room.yMax}]");
+           // Debug.Log($"Room {i}: X[{room.xMin}, {room.xMax}] Y[{room.yMin}, {room.yMax}]");
         }
+    }
+
+    void CreateDoors()
+    {
+
     }
 
 }
