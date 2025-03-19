@@ -3,6 +3,7 @@ using Unity.VisualScripting;
 using System.Collections.Generic;
 using System.Collections;
 using NaughtyAttributes;
+using UnityEditor.Overlays;
 
 public class DungeonGenerator : MonoBehaviour
 {
@@ -23,6 +24,7 @@ public class DungeonGenerator : MonoBehaviour
     [Header("room size")]
     public float minSizeX = 20;
     public float minSizeY = 20;
+    public float minDoorSize = 4;
 
 
     public AlgorithmsUtils algorithmsUtils;
@@ -31,7 +33,7 @@ public class DungeonGenerator : MonoBehaviour
     {
         foreach (var room in roomList)
         {
-            AlgorithmsUtils.DebugRectInt(room, Color.green, duration, depthTest, height);
+            AlgorithmsUtils.DebugRectInt(room, Color.green, 0, depthTest, height);
         }
 
         foreach (var door in doorList)
@@ -112,11 +114,27 @@ public class DungeonGenerator : MonoBehaviour
 
                 RectInt sharedWall = AlgorithmsUtils.Intersect(roomA, roomB);
 
+
                 if (sharedWall.width > 0 && sharedWall.height > 0) // Valid overlap
                 {
                     Debug.Log($"Shared Wall between Room {i} and Room {j}: X[{sharedWall.xMin}, {sharedWall.xMax}] Y[{sharedWall.yMin}, {sharedWall.yMax}]");
                     wallList.Add(sharedWall);
-                    AlgorithmsUtils.DebugRectInt(sharedWall, Color.red, 100f, depthTest, heightDoor); // Draw the shared wall in red
+                    //AlgorithmsUtils.DebugRectInt(sharedWall, Color.red, 100f, depthTest, heightDoor); // Draw the shared wall in red
+
+                    if (sharedWall.height > sharedWall.width && sharedWall.width >= 2 && sharedWall.height >= 2 && roomA.yMin == roomB.yMin || roomA.xMin == roomB.xMin)
+                    {
+
+                        RectInt doorRectY = new RectInt(sharedWall.xMin,sharedWall.yMin + sharedWall.height /2, 2, 2);
+
+                        AlgorithmsUtils.DebugRectInt(doorRectY, Color.blue, duration, depthTest, heightDoor);
+                    }
+
+                    if (sharedWall.width > sharedWall.height && sharedWall.width >= 2 && sharedWall.height >= 2 && roomA.yMin == roomB.yMin || roomA.xMin == roomB.xMin)
+                    {
+                        RectInt doorRectX = new RectInt(sharedWall.xMin +sharedWall.width /2, sharedWall.yMin, 2, 2);
+
+                       AlgorithmsUtils.DebugRectInt(doorRectX, Color.blue, duration, depthTest, heightDoor);
+                    }
                 }
             }
         }
