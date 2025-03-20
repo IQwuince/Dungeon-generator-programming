@@ -10,13 +10,15 @@ public class DungeonGenerator : MonoBehaviour
     public List<RectInt> roomList = new();
     public List<RectInt> wallList = new();
     public List<RectInt> doorList = new();
+    public List<int> testDoorList = new();
 
     RectInt initalroom = new RectInt(0, 0, 100, 50);
 
     public float duration= 0;
     public bool depthTest = false;
     public float height = 0.0f;
-    public float heightDoor = 5f;
+    public float heightDoor = 0f;
+    public float heightWall = 2f;
     public int rooms = 5;
     public bool splitHorizontally;
     public bool makeRoom;
@@ -38,7 +40,12 @@ public class DungeonGenerator : MonoBehaviour
 
         foreach (var door in doorList)
         {
-            AlgorithmsUtils.DebugRectInt(door, Color.red, duration, depthTest, height);
+            AlgorithmsUtils.DebugRectInt(door, Color.blue, duration, depthTest, heightDoor);
+        }
+
+        foreach (var sharedWall in wallList)
+        {
+            AlgorithmsUtils.DebugRectInt(sharedWall, Color.red, 100f, depthTest, heightWall);
         }
 
     }
@@ -114,31 +121,29 @@ public class DungeonGenerator : MonoBehaviour
 
                 RectInt sharedWall = AlgorithmsUtils.Intersect(roomA, roomB);
 
-
                 if (sharedWall.width > 0 && sharedWall.height > 0) // Valid overlap
                 {
                     Debug.Log($"Shared Wall between Room {i} and Room {j}: X[{sharedWall.xMin}, {sharedWall.xMax}] Y[{sharedWall.yMin}, {sharedWall.yMax}]");
                     wallList.Add(sharedWall);
-                    //AlgorithmsUtils.DebugRectInt(sharedWall, Color.red, 100f, depthTest, heightDoor); // Draw the shared wall in red
+                     // Draw the shared wall in red
 
-                    if (sharedWall.height > sharedWall.width && sharedWall.width >= 2 && sharedWall.height >= 2 && roomA.yMin == roomB.yMin || roomA.xMin == roomB.xMin)
+                    // Ensure we don't place doors on corners
+                    if (sharedWall.height > sharedWall.width && sharedWall.width >= 2 && sharedWall.height >= 2 && (roomA.yMin == roomB.yMin || roomA.xMin == roomB.xMin))
                     {
-
-                        RectInt doorRectY = new RectInt(sharedWall.xMin,sharedWall.yMin + sharedWall.height /2, 2, 2);
-
-                        AlgorithmsUtils.DebugRectInt(doorRectY, Color.blue, duration, depthTest, heightDoor);
+                        RectInt doorRectY = new RectInt(sharedWall.xMin, sharedWall.yMin + sharedWall.height / 2, 2, 2);
+                        doorList.Add(doorRectY);
                     }
 
-                    if (sharedWall.width > sharedWall.height && sharedWall.width >= 2 && sharedWall.height >= 2 && roomA.yMin == roomB.yMin || roomA.xMin == roomB.xMin)
+                    if (sharedWall.width > sharedWall.height && sharedWall.width >= 2 && sharedWall.height >= 2 && (roomA.yMin == roomB.yMin || roomA.xMin == roomB.xMin))
                     {
-                        RectInt doorRectX = new RectInt(sharedWall.xMin +sharedWall.width /2, sharedWall.yMin, 2, 2);
-
-                       AlgorithmsUtils.DebugRectInt(doorRectX, Color.blue, duration, depthTest, heightDoor);
+                        RectInt doorRectX = new RectInt(sharedWall.xMin + sharedWall.width / 2, sharedWall.yMin, 2, 2);
+                        doorList.Add(doorRectX);
                     }
                 }
             }
         }
     }
+
 
     void PrintRoomPositions()
     {
