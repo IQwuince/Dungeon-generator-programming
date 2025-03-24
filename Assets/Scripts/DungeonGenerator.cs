@@ -12,10 +12,9 @@ public class DungeonGenerator : MonoBehaviour
     public List<RectInt> wallList = new();
 
     Graph<RectInt> graph = new Graph<RectInt>();
-    Dictionary<RectInt, List<RectInt>> roomGraph = new Dictionary<RectInt, List<RectInt>>();
 
 
-    RectInt initalroom = new RectInt(0, 0, 100, 50);
+    RectInt initalroom = new RectInt(0, 0, 200, 100);
 
     public float duration = 0;
     public bool depthTest = false;
@@ -141,7 +140,6 @@ public class DungeonGenerator : MonoBehaviour
                     //Debug.Log($"Shared Wall between Room {i} and Room {j}: X[{sharedWall.xMin}, {sharedWall.xMax}] Y[{sharedWall.yMin}, {sharedWall.yMax}]");
                     wallList.Add(sharedWall);
 
-                    // Ensure we don't place doors on corners
                     if (sharedWall.height > sharedWall.width && sharedWall.width >= 2 && sharedWall.height >= 2 && (roomA.yMin == roomB.yMin || roomA.xMin == roomB.xMin))
                     {
                         RectInt doorRectY = new RectInt(sharedWall.xMin, sharedWall.yMin + sharedWall.height / 2, 2, 2);
@@ -166,9 +164,12 @@ public class DungeonGenerator : MonoBehaviour
     }
 
 
+
     void BSFSearch()
     {
-        graph.BFS(roomList[0]);
+        List<RectInt> visitedRooms = graph.BFS(roomList[0]);
+        Debug.Log($"Connected: {visitedRooms.Count} / {roomList.Count}");
+
     }
 
 }

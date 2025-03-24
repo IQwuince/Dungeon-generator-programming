@@ -87,30 +87,32 @@ public class Graph<T>
     }
 
     // Breadth-First Search (BFS)
-    public void BFS(T startNode)
+    public List<T> BFS(T startNode)
     {
         Queue<T> queue = new();
         List<T> visited = new();
 
         queue.Enqueue(startNode);
         visited.Add(startNode);
+
         while (queue.Count > 0)
         {
-            startNode = queue.Dequeue();
-            Debug.Log(startNode);
+            T node = queue.Dequeue();
+            Debug.Log(node);
 
-            foreach (var neighbour in adjacencyList[startNode])
+            foreach (T neighbor in adjacencyList[node])
             {
-                if (!visited.Contains(neighbour))
+                if (!visited.Contains(neighbor))
                 {
-                    queue.Enqueue(neighbour);
-                    visited.Add(neighbour);
+                    queue.Enqueue(neighbor);
+                    visited.Add(neighbor);
                 }
-
             }
         }
 
+        return visited;
     }
+
 
 
     // Depth-First Search (DFS)
