@@ -8,13 +8,16 @@ using UnityEditor.Overlays;
 public class DungeonGenerator : MonoBehaviour
 {
     public List<RectInt> roomList = new();
-    public List<RectInt> wallList = new();
     public List<RectInt> doorList = new();
-    public List<int> testDoorList = new();
+    public List<RectInt> wallList = new();
+
+    Graph<RectInt> graph = new Graph<RectInt>();
+    Dictionary<RectInt, List<RectInt>> roomGraph = new Dictionary<RectInt, List<RectInt>>();
+
 
     RectInt initalroom = new RectInt(0, 0, 100, 50);
 
-    public float duration= 0;
+    public float duration = 0;
     public bool depthTest = false;
     public float height = 0.0f;
     public float heightDoor = 0f;
@@ -51,7 +54,7 @@ public class DungeonGenerator : MonoBehaviour
     }
     private void Start()
     {
-
+        //Randomly choosing to split horizontal or vertical
         if (Random.value > 0.5f)
         {
             splitHorizontally = true;
@@ -59,22 +62,30 @@ public class DungeonGenerator : MonoBehaviour
 
         roomList.Add(initalroom);
 
+        //Create a room for each room in the list
         for (int i = 0; i < rooms; i++)
         {
-            if (roomList.Count > 0) 
+            if (roomList.Count > 0)
             {
                 CreateRoom();
             }
         }
-        FindAdjacentRooms();
-        PrintRoomPositions();
+        Rooms();
+
+        //InitializeGraph();
+
+        BSFSearch();
+        //DFSSearch();
+
+
     }
+    //Creating the rooms
     void CreateRoom()
     {
         int roomIndex = Random.Range(0, roomList.Count);
         RectInt currentRoom = roomList[roomIndex];
 
-       // int halfWidth = currentRoom.width / 2;
+        // int halfWidth = currentRoom.width / 2;
         //int halfLength = currentRoom.height / 2;
 
         int halfWidth = (int)Random.Range(minSizeX, currentRoom.width - minSizeX);
@@ -93,7 +104,7 @@ public class DungeonGenerator : MonoBehaviour
             roomList.RemoveAt(roomIndex);
             roomList.Add(firstHalf);
             roomList.Add(secondHalf);
-            
+
             splitHorizontally = false;
         }
         else if (currentRoom.height > minSizeY && halfWidth > minSizeX)
@@ -109,7 +120,9 @@ public class DungeonGenerator : MonoBehaviour
         }
 
     }
-    void FindAdjacentRooms()
+
+    //Walls, doors
+    void Rooms()
     {
         for (int i = 0; i < roomList.Count; i++)
         {
@@ -121,42 +134,41 @@ public class DungeonGenerator : MonoBehaviour
 
                 RectInt sharedWall = AlgorithmsUtils.Intersect(roomA, roomB);
 
+
+                //Doors
                 if (sharedWall.width > 0 && sharedWall.height > 0) // Valid overlap
                 {
-                    Debug.Log($"Shared Wall between Room {i} and Room {j}: X[{sharedWall.xMin}, {sharedWall.xMax}] Y[{sharedWall.yMin}, {sharedWall.yMax}]");
+                    //Debug.Log($"Shared Wall between Room {i} and Room {j}: X[{sharedWall.xMin}, {sharedWall.xMax}] Y[{sharedWall.yMin}, {sharedWall.yMax}]");
                     wallList.Add(sharedWall);
-                     // Draw the shared wall in red
 
                     // Ensure we don't place doors on corners
                     if (sharedWall.height > sharedWall.width && sharedWall.width >= 2 && sharedWall.height >= 2 && (roomA.yMin == roomB.yMin || roomA.xMin == roomB.xMin))
                     {
                         RectInt doorRectY = new RectInt(sharedWall.xMin, sharedWall.yMin + sharedWall.height / 2, 2, 2);
                         doorList.Add(doorRectY);
+
+                        graph.AddEdge(roomA, roomB);
                     }
 
                     if (sharedWall.width > sharedWall.height && sharedWall.width >= 2 && sharedWall.height >= 2 && (roomA.yMin == roomB.yMin || roomA.xMin == roomB.xMin))
                     {
                         RectInt doorRectX = new RectInt(sharedWall.xMin + sharedWall.width / 2, sharedWall.yMin, 2, 2);
                         doorList.Add(doorRectX);
+
+                        graph.AddEdge(roomA, roomB);
                     }
                 }
+
+
+
             }
         }
     }
 
 
-    void PrintRoomPositions()
+    void BSFSearch()
     {
-        for (int i = 0; i < roomList.Count; i++)
-        {
-            RectInt room = roomList[i];
-           // Debug.Log($"Room {i}: X[{room.xMin}, {room.xMax}] Y[{room.yMin}, {room.yMax}]");
-        }
-    }
-
-    void CreateDoors()
-    {
-
+        graph.BFS(roomList[0]);
     }
 
 }
