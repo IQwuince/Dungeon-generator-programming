@@ -14,7 +14,7 @@ public class DungeonGenerator : MonoBehaviour
     Graph<RectInt> graph = new Graph<RectInt>();
 
 
-    RectInt initalroom = new RectInt(0, 0, 200, 100);
+    RectInt initalroom = new RectInt(0, 0, 100, 50);
 
     public float duration = 0;
     public bool depthTest = false;
@@ -49,6 +49,8 @@ public class DungeonGenerator : MonoBehaviour
         {
             AlgorithmsUtils.DebugRectInt(sharedWall, Color.red, 100f, depthTest, heightWall);
         }
+
+        DrawGraphConnections();
 
     }
     private void Start()
@@ -163,6 +165,20 @@ public class DungeonGenerator : MonoBehaviour
         }
     }
 
+    void DrawGraphConnections()
+    {
+        foreach (var room in graph.GetNodes())
+        {
+            Vector3 centerA = new Vector3(room.center.x, height, room.center.y);
+
+            foreach (var neighbor in graph.GetNeighbors(room))
+            {
+                Vector3 centerB = new Vector3(neighbor.center.x, height, neighbor.center.y);
+
+                Debug.DrawLine(centerA, centerB, Color.yellow, duration, depthTest);
+            }
+        }
+    }
 
 
     void BSFSearch()
