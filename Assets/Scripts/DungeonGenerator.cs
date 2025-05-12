@@ -32,6 +32,7 @@ public class DungeonGenerator : MonoBehaviour
 
 
     public AlgorithmsUtils algorithmsUtils;
+    public GameObject wallPrefab;
 
     private void Update()
     {
@@ -55,7 +56,7 @@ public class DungeonGenerator : MonoBehaviour
     }
     private void Start()
     {
-        //Randomly choosing to split horizontal or vertical
+        // Randomly choosing to split horizontal or vertical
         if (Random.value > 0.5f)
         {
             splitHorizontally = true;
@@ -63,7 +64,7 @@ public class DungeonGenerator : MonoBehaviour
 
         roomList.Add(initalroom);
 
-        //Create a room for each room in the list
+        // Create a room for each room in the list
         for (int i = 0; i < rooms; i++)
         {
             if (roomList.Count > 0)
@@ -73,12 +74,18 @@ public class DungeonGenerator : MonoBehaviour
         }
         Rooms();
 
-        //InitializeGraph();
+        // Add perimeter walls for each room in the room list
+        foreach (var room in roomList)
+        {
+            AddPerimeterWalls(room);
+        }
+
+        // InitializeGraph();
 
         BSFSearch();
-        //DFSSearch();
+        // DFSSearch();
 
-
+        SpawnDungeonAssets();
     }
     //Creating the rooms
     void CreateRoom()
@@ -121,10 +128,24 @@ public class DungeonGenerator : MonoBehaviour
         }
 
     }
+    private void AddPerimeterWalls(RectInt room)
+    {
+        // Top wall
+        wallList.Add(new RectInt(room.xMin, room.yMax - 1, room.width, 1));
+        // Bottom wall
+        wallList.Add(new RectInt(room.xMin, room.yMin, room.width, 1));
+        // Left wall
+        wallList.Add(new RectInt(room.xMin, room.yMin, 1, room.height));
+        // Right wall
+        wallList.Add(new RectInt(room.xMax - 1, room.yMin, 1, room.height));
+    }
 
     //Walls, doors
     void Rooms()
     {
+        int doorSize = 2;
+        int doorMargin = 2; // Minimum distance from corners
+
         for (int i = 0; i < roomList.Count; i++)
         {
             RectInt roomA = roomList[i];
@@ -135,47 +156,148 @@ public class DungeonGenerator : MonoBehaviour
 
                 RectInt sharedWall = AlgorithmsUtils.Intersect(roomA, roomB);
 
-
-                //Doors
+                // Doors
                 if (sharedWall.width > 0 && sharedWall.height > 0) // Valid overlap
                 {
-                    //Debug.Log($"Shared Wall between Room {i} and Room {j}: X[{sharedWall.xMin}, {sharedWall.xMax}] Y[{sharedWall.yMin}, {sharedWall.yMax}]");
                     wallList.Add(sharedWall);
 
-                    if (sharedWall.height > sharedWall.width && sharedWall.width >= 2 && sharedWall.height >= 2 && (roomA.yMin == roomB.yMin || roomA.xMin == roomB.xMin))
+                    // Vertical wall (door along Y axis)
+                    if (sharedWall.height > sharedWall.width && sharedWall.width >= doorSize && sharedWall.height >= doorSize && (roomA.yMin == roomB.yMin || roomA.xMin == roomB.xMin))
                     {
-                        RectInt doorRectY = new RectInt(sharedWall.xMin, sharedWall.yMin + sharedWall.height / 2, 2, 2);
-                        doorList.Add(doorRectY);
+                        int minY = sharedWall.yMin + doorMargin;
+                        int maxY = sharedWall.yMax - doorSize - doorMargin;
+                        if (maxY >= minY)
+                        {
+                            int doorY = Random.Range(minY, maxY + 1);
+                            RectInt doorRectY = new RectInt(sharedWall.xMin, doorY, doorSize, doorSize);
+                            doorList.Add(doorRectY);
 
-                        graph.AddEdge(roomA, roomB);
+                            graph.AddEdge(roomA, roomB);
+                        }
                     }
 
-                    if (sharedWall.width > sharedWall.height && sharedWall.width >= 2 && sharedWall.height >= 2 && (roomA.yMin == roomB.yMin || roomA.xMin == roomB.xMin))
+                    // Horizontal wall (door along X axis)
+                    if (sharedWall.width > sharedWall.height && sharedWall.width >= doorSize && sharedWall.height >= doorSize && (roomA.yMin == roomB.yMin || roomA.xMin == roomB.xMin))
                     {
-                        RectInt doorRectX = new RectInt(sharedWall.xMin + sharedWall.width / 2, sharedWall.yMin, 2, 2);
-                        doorList.Add(doorRectX);
+                        int minX = sharedWall.xMin + doorMargin;
+                        int maxX = sharedWall.xMax - doorSize - doorMargin;
+                        if (maxX >= minX)
+                        {
+                            int doorX = Random.Range(minX, maxX + 1);
+                            RectInt doorRectX = new RectInt(doorX, sharedWall.yMin, doorSize, doorSize);
+                            doorList.Add(doorRectX);
 
-                        graph.AddEdge(roomA, roomB);
+                            graph.AddEdge(roomA, roomB);
+                        }
                     }
                 }
-
-
-
             }
         }
+    }
+    public void SpawnDungeonAssets()
+    {
+
+        foreach (var wallRect in wallList)
+        {
+            bool hasDoor = false;
+            foreach (var doorRect in doorList)
+            {
+                if (AlgorithmsUtils.Intersects(wallRect, doorRect))
+                {
+                    hasDoor = true;
+
+                    // Split the wall into two segments, skipping the door area
+                    // Determine if the wall is horizontal or vertical
+                    if (wallRect.width > wallRect.height)
+                    {
+                        // Horizontal wall
+                        int leftWidth = doorRect.xMin - wallRect.xMin;
+                        int rightWidth = wallRect.xMax - doorRect.xMax;
+
+                        if (leftWidth > 0)
+                        {
+                            RectInt leftWall = new RectInt(wallRect.xMin, wallRect.yMin, leftWidth, wallRect.height);
+                            InstantiateWall(leftWall);
+                        }
+                        if (rightWidth > 0)
+                        {
+                            RectInt rightWall = new RectInt(doorRect.xMax, wallRect.yMin, rightWidth, wallRect.height);
+                            InstantiateWall(rightWall);
+                        }
+                    }
+                    else
+                    {
+                        // Vertical wall
+                        int bottomHeight = doorRect.yMin - wallRect.yMin;
+                        int topHeight = wallRect.yMax - doorRect.yMax;
+
+                        if (bottomHeight > 0)
+                        {
+                            RectInt bottomWall = new RectInt(wallRect.xMin, wallRect.yMin, wallRect.width, bottomHeight);
+                            InstantiateWall(bottomWall);
+                        }
+                        if (topHeight > 0)
+                        {
+                            RectInt topWall = new RectInt(wallRect.xMin, doorRect.yMax, wallRect.width, topHeight);
+                            InstantiateWall(topWall);
+                        }
+                    }
+                    break; // Only one door per wall segment
+                }
+            }
+            if (!hasDoor)
+            {
+                InstantiateWall(wallRect);
+            }
+        }
+    }
+    // Helper method to instantiate a wall segment
+    private void InstantiateWall(RectInt wallRect)
+    {
+        Vector3 wallPosition = new Vector3(
+            wallRect.center.x,
+            heightWall,
+            wallRect.center.y
+        );
+
+        GameObject wall = Instantiate(wallPrefab, wallPosition, Quaternion.identity, this.transform);
+        wall.transform.localScale = new Vector3(wallRect.width, wall.transform.localScale.y, wallRect.height);
     }
 
     void DrawGraphConnections()
     {
         foreach (var room in graph.GetNodes())
         {
-            Vector3 centerA = new Vector3(room.center.x, height, room.center.y);
-
             foreach (var neighbor in graph.GetNeighbors(room))
             {
-                Vector3 centerB = new Vector3(neighbor.center.x, height, neighbor.center.y);
+                // Find the shared door between these two rooms
+                RectInt? door = null;
+                foreach (var d in doorList)
+                {
+                    if (AlgorithmsUtils.Intersects(room, d) && AlgorithmsUtils.Intersects(neighbor, d))
+                    {
+                        door = d;
+                        break;
+                    }
+                }
 
-                Debug.DrawLine(centerA, centerB, Color.yellow, duration, depthTest);
+                if (door.HasValue)
+                {
+                    Vector3 centerA = new Vector3(room.center.x, height, room.center.y);
+                    Vector3 centerB = new Vector3(neighbor.center.x, height, neighbor.center.y);
+                    Vector3 doorCenter = new Vector3(door.Value.center.x, heightDoor, door.Value.center.y);
+
+                    // Draw from room A to door, then door to room B
+                    Debug.DrawLine(centerA, doorCenter, Color.yellow, duration, depthTest);
+                    Debug.DrawLine(doorCenter, centerB, Color.yellow, duration, depthTest);
+                }
+                else
+                {
+                    // Fallback: draw direct if no door found
+                    Vector3 centerA = new Vector3(room.center.x, height, room.center.y);
+                    Vector3 centerB = new Vector3(neighbor.center.x, height, neighbor.center.y);
+                    Debug.DrawLine(centerA, centerB, Color.yellow, duration, depthTest);
+                }
             }
         }
     }
