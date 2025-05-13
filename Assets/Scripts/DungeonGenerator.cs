@@ -15,6 +15,8 @@ public class DungeonGenerator : MonoBehaviour
 
 
     RectInt initalroom = new RectInt(0, 0, 100, 50);
+    public GameObject wallPrefab;
+    public GameObject floorPrefab;
 
     public float duration = 0;
     public bool depthTest = false;
@@ -78,7 +80,7 @@ public class DungeonGenerator : MonoBehaviour
         BSFSearch();
         //DFSSearch();
 
-
+        SpawnDungeonAssets();
     }
     //Creating the rooms
     void CreateRoom()
@@ -125,6 +127,9 @@ public class DungeonGenerator : MonoBehaviour
     //Walls, doors
     void Rooms()
     {
+        int doorSize = 2;
+        int doorMargin = 2; // Minimum distance from corners
+
         for (int i = 0; i < roomList.Count; i++)
         {
             RectInt roomA = roomList[i];
@@ -135,32 +140,41 @@ public class DungeonGenerator : MonoBehaviour
 
                 RectInt sharedWall = AlgorithmsUtils.Intersect(roomA, roomB);
 
-
-                //Doors
+                // Doors
                 if (sharedWall.width > 0 && sharedWall.height > 0) // Valid overlap
                 {
-                    //Debug.Log($"Shared Wall between Room {i} and Room {j}: X[{sharedWall.xMin}, {sharedWall.xMax}] Y[{sharedWall.yMin}, {sharedWall.yMax}]");
                     wallList.Add(sharedWall);
 
-                    if (sharedWall.height > sharedWall.width && sharedWall.width >= 2 && sharedWall.height >= 2 && (roomA.yMin == roomB.yMin || roomA.xMin == roomB.xMin))
+                    // Vertical wall (door along Y axis)
+                    if (sharedWall.height > sharedWall.width && sharedWall.width >= doorSize && sharedWall.height >= doorSize)
                     {
-                        RectInt doorRectY = new RectInt(sharedWall.xMin, sharedWall.yMin + sharedWall.height / 2, 2, 2);
-                        doorList.Add(doorRectY);
+                        int minY = sharedWall.yMin + doorMargin;
+                        int maxY = sharedWall.yMax - doorSize - doorMargin;
+                        if (maxY >= minY)
+                        {
+                            int doorY = Random.Range(minY, maxY + 1);
+                            RectInt doorRectY = new RectInt(sharedWall.xMin, doorY, doorSize, doorSize);
+                            doorList.Add(doorRectY);
 
-                        graph.AddEdge(roomA, roomB);
+                            graph.AddEdge(roomA, roomB);
+                        }
                     }
 
-                    if (sharedWall.width > sharedWall.height && sharedWall.width >= 2 && sharedWall.height >= 2 && (roomA.yMin == roomB.yMin || roomA.xMin == roomB.xMin))
+                    // Horizontal wall (door along X axis)
+                    if (sharedWall.width > sharedWall.height && sharedWall.width >= doorSize && sharedWall.height >= doorSize)
                     {
-                        RectInt doorRectX = new RectInt(sharedWall.xMin + sharedWall.width / 2, sharedWall.yMin, 2, 2);
-                        doorList.Add(doorRectX);
+                        int minX = sharedWall.xMin + doorMargin;
+                        int maxX = sharedWall.xMax - doorSize - doorMargin;
+                        if (maxX >= minX)
+                        {
+                            int doorX = Random.Range(minX, maxX + 1);
+                            RectInt doorRectX = new RectInt(doorX, sharedWall.yMin, doorSize, doorSize);
+                            doorList.Add(doorRectX);
 
-                        graph.AddEdge(roomA, roomB);
+                            graph.AddEdge(roomA, roomB);
+                        }
                     }
                 }
-
-
-
             }
         }
     }
@@ -169,13 +183,35 @@ public class DungeonGenerator : MonoBehaviour
     {
         foreach (var room in graph.GetNodes())
         {
-            Vector3 centerA = new Vector3(room.center.x, height, room.center.y);
-
             foreach (var neighbor in graph.GetNeighbors(room))
             {
+                // Find the shared door between these two rooms
+                RectInt? door = null;
+                foreach (var d in doorList)
+                {
+                    if (AlgorithmsUtils.Intersects(room, d) && AlgorithmsUtils.Intersects(neighbor, d))
+                    {
+                        door = d;
+                        break;
+                    }
+                }
+
+                Vector3 centerA = new Vector3(room.center.x, height, room.center.y);
                 Vector3 centerB = new Vector3(neighbor.center.x, height, neighbor.center.y);
 
-                Debug.DrawLine(centerA, centerB, Color.yellow, duration, depthTest);
+                if (door.HasValue)
+                {
+                    Vector3 doorCenter = new Vector3(door.Value.center.x, heightDoor, door.Value.center.y);
+
+                    // Draw from room A to door, then door to room B
+                    Debug.DrawLine(centerA, doorCenter, Color.yellow, duration, depthTest);
+                    Debug.DrawLine(doorCenter, centerB, Color.yellow, duration, depthTest);
+                }
+                else
+                {
+                    // Fallback: draw direct if no door found
+                    Debug.DrawLine(centerA, centerB, Color.yellow, duration, depthTest);
+                }
             }
         }
     }
@@ -186,6 +222,69 @@ public class DungeonGenerator : MonoBehaviour
         List<RectInt> visitedRooms = graph.BFS(roomList[0]);
         Debug.Log($"Connected: {visitedRooms.Count} / {roomList.Count}");
 
+    }
+    public void SpawnDungeonAssets()
+    {
+        // Find or create the "Rooms" parent object
+        GameObject roomsParent = GameObject.Find("Rooms");
+        if (roomsParent == null)
+            roomsParent = new GameObject("Rooms");
+        roomsParent.transform.SetParent(transform);
+
+        for (int i = 0; i < roomList.Count; i++)
+        {
+            var room = roomList[i];
+            GameObject roomGO = new GameObject($"Room_{i}");
+            roomGO.transform.SetParent(roomsParent.transform);
+
+            // --- Spawn Floor ---
+            if (floorPrefab != null)
+            {
+                Vector3 floorPos = new Vector3(
+                    room.center.x,
+                    0, // Place at y=0, adjust if needed
+                    room.center.y
+                );
+                GameObject floor = Instantiate(floorPrefab, floorPos, Quaternion.Euler(90, 0, 0), roomGO.transform);
+                floor.transform.localScale = new Vector3(room.width, room.height, 1);
+            }
+
+            // Top and bottom walls
+            for (int x = room.xMin; x < room.xMax; x++)
+            {
+                Vector2Int topPosInt = new Vector2Int(x, room.yMin);
+                Vector2Int bottomPosInt = new Vector2Int(x, room.yMax - 1);
+
+                Vector3 topPos = new Vector3(x + 0.5f, heightWall, room.yMin + 0.5f);
+                Vector3 bottomPos = new Vector3(x + 0.5f, heightWall, room.yMax - 1 + 0.5f);
+
+                bool topIsDoor = doorList.Exists(d => d.Contains(topPosInt));
+                bool bottomIsDoor = doorList.Exists(d => d.Contains(bottomPosInt));
+
+                if (!topIsDoor)
+                    Instantiate(wallPrefab, topPos, Quaternion.identity, roomGO.transform);
+                if (!bottomIsDoor)
+                    Instantiate(wallPrefab, bottomPos, Quaternion.identity, roomGO.transform);
+            }
+
+            // Left and right walls (excluding corners to avoid double instantiation)
+            for (int y = room.yMin + 1; y < room.yMax - 1; y++)
+            {
+                Vector2Int leftPosInt = new Vector2Int(room.xMin, y);
+                Vector2Int rightPosInt = new Vector2Int(room.xMax - 1, y);
+
+                Vector3 leftPos = new Vector3(room.xMin + 0.5f, heightWall, y + 0.5f);
+                Vector3 rightPos = new Vector3(room.xMax - 1 + 0.5f, heightWall, y + 0.5f);
+
+                bool leftIsDoor = doorList.Exists(d => d.Contains(leftPosInt));
+                bool rightIsDoor = doorList.Exists(d => d.Contains(rightPosInt));
+
+                if (!leftIsDoor)
+                    Instantiate(wallPrefab, leftPos, Quaternion.identity, roomGO.transform);
+                if (!rightIsDoor)
+                    Instantiate(wallPrefab, rightPos, Quaternion.identity, roomGO.transform);
+            }
+        }
     }
 
 }
