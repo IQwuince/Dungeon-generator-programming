@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections;
 using NaughtyAttributes;
 using UnityEditor.Overlays;
+using Unity.AI.Navigation;
 
 public class DungeonGenerator : MonoBehaviour
 {
@@ -15,8 +16,11 @@ public class DungeonGenerator : MonoBehaviour
 
 
     RectInt initalroom = new RectInt(0, 0, 100, 50);
+
+    [Header("Assets")]
     public GameObject wallPrefab;
     public GameObject floorPrefab;
+    public NavMeshSurface navMeshSurface;
 
     public float duration = 0;
     public bool depthTest = false;
@@ -35,24 +39,35 @@ public class DungeonGenerator : MonoBehaviour
 
     public AlgorithmsUtils algorithmsUtils;
 
+    [Header("Settings")]
+    public bool showDebug = true;
+    public bool stepByStep = false; // Toggle for step-by-step mode
+    private Coroutine generationCoroutine;
+    private bool waitingForStep = false;
+
+
     private void Update()
     {
-        foreach (var room in roomList)
+        if ( showDebug == true)
         {
-            AlgorithmsUtils.DebugRectInt(room, Color.green, 0, depthTest, height);
-        }
+            foreach (var room in roomList)
+            {
+                AlgorithmsUtils.DebugRectInt(room, Color.green, 0, depthTest, height);
+            }
 
-        foreach (var door in doorList)
-        {
-            AlgorithmsUtils.DebugRectInt(door, Color.blue, duration, depthTest, heightDoor);
-        }
+            foreach (var door in doorList)
+            {
+                AlgorithmsUtils.DebugRectInt(door, Color.blue, duration, depthTest, heightDoor);
+            }
 
-        foreach (var sharedWall in wallList)
-        {
-            AlgorithmsUtils.DebugRectInt(sharedWall, Color.red, 100f, depthTest, heightWall);
-        }
+            foreach (var sharedWall in wallList)
+            {
+                AlgorithmsUtils.DebugRectInt(sharedWall, Color.red, 100f, depthTest, heightWall);
+            }
 
-        DrawGraphConnections();
+            DrawGraphConnections();
+        }
+        
 
     }
     private void Start()
@@ -174,6 +189,8 @@ public class DungeonGenerator : MonoBehaviour
                             graph.AddEdge(roomA, roomB);
                         }
                     }
+
+
                 }
             }
         }
@@ -284,6 +301,12 @@ public class DungeonGenerator : MonoBehaviour
                 if (!rightIsDoor)
                     Instantiate(wallPrefab, rightPos, Quaternion.identity, roomGO.transform);
             }
+        }
+
+        // --- Bake the NavMesh after all geometry is spawned ---
+        if (navMeshSurface != null)
+        {
+            navMeshSurface.BuildNavMesh();
         }
     }
 

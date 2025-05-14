@@ -6,9 +6,14 @@ public class MouseClickController : MonoBehaviour
 {
     public Vector3 clickPosition;
     public List<Vector3> clickPositions = new();
+    public PlayerController playerController;
+
+    [Header("Settings")]
+    public bool showDebug = true;
 
     // Define the UnityEvent to notify other scripts about the click
     public UnityEvent<Vector3> OnClickEvent = new();
+    //public UnityEvent destination;
 
     private Ray lastRay;
     private bool hasValidClick = false;
@@ -32,21 +37,24 @@ public class MouseClickController : MonoBehaviour
 
                 // Trigger the UnityEvent to notify other scripts about the click
                 OnClickEvent.Invoke(clickWorldPosition);
-                Debug.Log("Event");
+                playerController.GoToDestination(clickWorldPosition);
             }
         }
-
-        // Visual debug for all positions (optional, can be removed if only last is needed)
-        foreach (var position in clickPositions)
+        if (showDebug == true)
         {
-            Debug.DrawRay(position, Vector3.up, Color.blue, 1.0f);
-        }
+            // Visual debug for all positions (optional, can be removed if only last is needed)
+            foreach (var position in clickPositions)
+            {
+                Debug.DrawRay(position, Vector3.up, Color.blue, 1.0f);
+            }
 
-        // Visual debug for the last valid ray and position
-        if (hasValidClick)
-        {
-            Debug.DrawRay(lastRay.origin, lastRay.direction * 100f, Color.green); // Draw the last ray
-            DebugExtension.DebugWireSphere(clickPosition, Color.green, 0.5f); // Draw a wire sphere at the last position
+            // Visual debug for the last valid ray and position
+            if (hasValidClick)
+            {
+                Debug.DrawRay(lastRay.origin, lastRay.direction * 100f, Color.green); // Draw the last ray
+                DebugExtension.DebugWireSphere(clickPosition, Color.green, 0.5f); // Draw a wire sphere at the last position
+            }
         }
+        
     }
 }
