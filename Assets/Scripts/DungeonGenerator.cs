@@ -8,6 +8,7 @@ using Unity.AI.Navigation;
 
 public class DungeonGenerator : MonoBehaviour
 {
+    [Header("Lists")]
     public List<RectInt> roomList = new();
     public List<RectInt> doorList = new();
     public List<RectInt> wallList = new();
@@ -22,6 +23,7 @@ public class DungeonGenerator : MonoBehaviour
     public GameObject floorPrefab;
     public NavMeshSurface navMeshSurface;
 
+    [Header("Settings")]
     public float duration = 0;
     public bool depthTest = false;
     public float height = 0.0f;
@@ -29,7 +31,7 @@ public class DungeonGenerator : MonoBehaviour
     public float heightWall = 2f;
     public int rooms = 5;
     public bool splitHorizontally;
-    public bool makeRoom;
+    public bool showDebug = true;
 
     [Header("room size")]
     public float minSizeX = 20;
@@ -39,15 +41,10 @@ public class DungeonGenerator : MonoBehaviour
 
     public AlgorithmsUtils algorithmsUtils;
 
-    [Header("Settings")]
-    public bool showDebug = true;
-    public bool stepByStep = false; // Toggle for step-by-step mode
-    private Coroutine generationCoroutine;
-    private bool waitingForStep = false;
 
 
     private void Update()
-    {
+    {   //Show or hide debug lines for rooms, doors and walls
         if ( showDebug == true)
         {
             foreach (var room in roomList)
@@ -90,22 +87,18 @@ public class DungeonGenerator : MonoBehaviour
         }
         Rooms();
 
-        //InitializeGraph();
-
         BSFSearch();
-        //DFSSearch();
 
         SpawnDungeonAssets();
     }
     //Creating the rooms
     void CreateRoom()
     {
+        // Select a random room from the list to split
         int roomIndex = Random.Range(0, roomList.Count);
         RectInt currentRoom = roomList[roomIndex];
 
-        // int halfWidth = currentRoom.width / 2;
-        //int halfLength = currentRoom.height / 2;
-
+        // Determine random split positions within the allowed size constraints
         int halfWidth = (int)Random.Range(minSizeX, currentRoom.width - minSizeX);
         int halfLength = (int)Random.Range(minSizeY, currentRoom.height - minSizeY);
 
@@ -114,36 +107,43 @@ public class DungeonGenerator : MonoBehaviour
         int lineX = currentRoom.xMin + halfWidth;
         int lineY = currentRoom.yMin + halfLength;
 
+        // Split horizontally if flag is set and room is large enough
         if (splitHorizontally == true && currentRoom.width > minSizeX && halfLength > minSizeY)
         {
+            // Create two new rooms by splitting along the Y axis
             firstHalf = new RectInt(currentRoom.xMin, currentRoom.yMin, currentRoom.width, halfLength + 1);
             secondHalf = new RectInt(currentRoom.xMin, lineY - 1, currentRoom.width, currentRoom.height - halfLength + 1);
 
+            // Replace the original room with the two new rooms
             roomList.RemoveAt(roomIndex);
             roomList.Add(firstHalf);
             roomList.Add(secondHalf);
 
+            // Alternate split direction for next room
             splitHorizontally = false;
         }
+        // Otherwise, split vertically if possible
         else if (currentRoom.height > minSizeY && halfWidth > minSizeX)
         {
+            // Create two new rooms by splitting along the X axis
             firstHalf = new RectInt(currentRoom.xMin, currentRoom.yMin, halfWidth + 1, currentRoom.height);
             secondHalf = new RectInt(lineX - 1, currentRoom.yMin, currentRoom.width - halfWidth + 1, currentRoom.height);
 
+            // Replace the original room with the two new rooms
             roomList.RemoveAt(roomIndex);
             roomList.Add(firstHalf);
             roomList.Add(secondHalf);
 
+            // Alternate split direction for next room
             splitHorizontally = true;
         }
-
     }
 
     //Walls, doors
     void Rooms()
     {
-        int doorSize = 2;
-        int doorMargin = 2; // Minimum distance from corners
+        int doorSize = 2;      // The width/height of each door (doors are square)
+        int doorMargin = 2;    // Minimum distance from the edge of a wall to a door (prevents doors at corners)
 
         for (int i = 0; i < roomList.Count; i++)
         {
@@ -153,44 +153,48 @@ public class DungeonGenerator : MonoBehaviour
             {
                 RectInt roomB = roomList[j];
 
+                // Find the shared wall between the two rooms
                 RectInt sharedWall = AlgorithmsUtils.Intersect(roomA, roomB);
 
-                // Doors
-                if (sharedWall.width > 0 && sharedWall.height > 0) // Valid overlap
+                if (sharedWall.width > 0 && sharedWall.height > 0)
                 {
-                    wallList.Add(sharedWall);
+                    wallList.Add(sharedWall); // Store the shared wall for debug/visualization
 
-                    // Vertical wall (door along Y axis)
+                    // If the shared wall is vertical (taller than it is wide)
                     if (sharedWall.height > sharedWall.width && sharedWall.width >= doorSize && sharedWall.height >= doorSize)
                     {
+                        // Calculate the valid Y range for placing a door, avoiding corners
                         int minY = sharedWall.yMin + doorMargin;
                         int maxY = sharedWall.yMax - doorSize - doorMargin;
                         if (maxY >= minY)
                         {
+                            // Randomly select a Y position for the door within the valid range
                             int doorY = Random.Range(minY, maxY + 1);
                             RectInt doorRectY = new RectInt(sharedWall.xMin, doorY, doorSize, doorSize);
-                            doorList.Add(doorRectY);
+                            doorList.Add(doorRectY); // Store the door
 
+                            // Add an edge in the graph to make sure these rooms are connected
                             graph.AddEdge(roomA, roomB);
                         }
                     }
 
-                    // Horizontal wall (door along X axis)
+                    // If the shared wall is horizontal (wider than it is tall)
                     if (sharedWall.width > sharedWall.height && sharedWall.width >= doorSize && sharedWall.height >= doorSize)
                     {
+                        // Calculate the valid X range for placing a door, avoiding corners
                         int minX = sharedWall.xMin + doorMargin;
                         int maxX = sharedWall.xMax - doorSize - doorMargin;
                         if (maxX >= minX)
                         {
+                            // Randomly select an X position for the door within the valid range
                             int doorX = Random.Range(minX, maxX + 1);
                             RectInt doorRectX = new RectInt(doorX, sharedWall.yMin, doorSize, doorSize);
-                            doorList.Add(doorRectX);
+                            doorList.Add(doorRectX); // Store the door
 
+                            // Add an edge in the graph to make sure these rooms are connected
                             graph.AddEdge(roomA, roomB);
                         }
                     }
-
-
                 }
             }
         }
@@ -303,7 +307,7 @@ public class DungeonGenerator : MonoBehaviour
             }
         }
 
-        // --- Bake the NavMesh after all geometry is spawned ---
+        //make the NavMesh after all geometry is spawned 
         if (navMeshSurface != null)
         {
             navMeshSurface.BuildNavMesh();
